@@ -36,7 +36,31 @@ const LoginPage = (props) => {
 
   return (
     <div className="card">
-      <div className="cardHeader">Login</div>
+      <div
+        className="cardHeader"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span>Login</span>
+        <button
+          onClick={() => navigate("/register")}
+          style={{
+            marginLeft: "1rem",
+            background: "#f7c52a",
+            color: "#333",
+            border: "none",
+            borderRadius: "2px",
+            padding: "0.25rem 0.75rem",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+          }}
+        >
+          Register
+        </button>
+      </div>
       <div className="cardBody">
         <div className="inputGroup">
           <label htmlFor="email">Email</label>

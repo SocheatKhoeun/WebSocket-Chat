@@ -1,10 +1,12 @@
 import React from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import makeToast from "../Toaster";
 
 const DashboardPage = (props) => {
   const [chatrooms, setChatrooms] = React.useState([]);
+  const navigate = useNavigate();
+
   const getChatrooms = () => {
     axios
       .get("http://localhost:8000/chatroom", {
@@ -55,9 +57,28 @@ const DashboardPage = (props) => {
   
   const chatroomNameRef = React.createRef();
 
+  const handleLogout = () => {
+    localStorage.removeItem("CC_Token");
+    navigate("/login");
+  };
+
   return (
     <div className="card">
-      <div className="cardHeader">Chatrooms</div>
+      <div className="cardHeader" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>Rooms</span>
+        <button onClick={handleLogout} 
+        style={{
+              marginLeft: "1rem",
+              background: "#e74c3c",
+              color: "#fff",
+              border: "none",
+              borderRadius: "2px",
+              padding: "0.25rem 0.75rem",
+              cursor: "pointer",
+              fontSize: "0.9rem"
+            }}
+        >Logout</button>
+      </div>
       <div className="cardBody">
         <div className="inputGroup">
           <label htmlFor="chatroomName">Chatroom Name</label>

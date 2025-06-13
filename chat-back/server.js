@@ -77,22 +77,33 @@ io.on("connection", (socket) => {
   socket.on("joinRoom", async ({ chatroomId }) => {
     socket.join(chatroomId);
     const user = await User.findOne({ _id: socket.userId });
-    io.to(chatroomId).emit("userJoined", {
+    // Notify others in the room (not the joiner)
+    socket.to(chatroomId).emit("userJoined", {
       userId: socket.userId,
-      name: user.name, // Send the user's name
+      name: user.name,
       message: `${user.name} joined the chatroom.`
     });
+    // Notify the joiner only
+    socket.emit("userJoinedSelf", {
+      userId: socket.userId,
+      name: user.name,
+      message: `You joined this chatroom.`
+    });
+    // Optionally, send a welcome event to the joiner only
+    // socket.emit("welcome", { message: `Welcome to ${chatroomId}` });
     console.log("A user joined chatroom: " + chatroomId);
   });
 
   socket.on("leaveRoom", async ({ chatroomId }) => {
     socket.leave(chatroomId);
     const user = await User.findOne({ _id: socket.userId });
-    io.to(chatroomId).emit("userLeft", {
+    // Only notify others, not the leaving user
+    socket.to(chatroomId).emit("userLeft", {
       userId: socket.userId,
       name: user.name, // Send the user's name
       message: `${user.name} left the chatroom.`
     });
+    // Do NOT emit to the leaving user
     console.log("A user left chatroom: " + chatroomId);
   });
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const ChatroomPage = ({ socket }) => {
@@ -9,6 +9,7 @@ const ChatroomPage = ({ socket }) => {
   const [userId, setUserId] = React.useState("");
   const [chatroomName, setChatroomName] = React.useState(""); // Add state for chatroom name
   const [typingUsers, setTypingUsers] = React.useState([]); // Track users typing
+  const navigate = useNavigate(); // Add useNavigate for navigation
 
   const sendMessage = () => {
     if (socket) {
@@ -80,27 +81,47 @@ const ChatroomPage = ({ socket }) => {
       const handleNewMessage = (message) => {
         setMessages((prev) => [...prev, message]);
       };
-      // Listen for user joined
-      const handleUserJoined = ({ name }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            message: `${name} joined the chatroom.`,
-            name: "", // No "System:" prefix
-            userId: "system",
-          },
-        ]);
+      // Listen for user joined (other users)
+      const handleUserJoined = ({ userId: joinedUserId, name, message }) => {
+        // Only show if the joined user is not the current user
+        if (joinedUserId !== userId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              message,
+              name: "",
+              userId: "system",
+            },
+          ]);
+        }
+      };
+      // Listen for user joined self (current user)
+      const handleUserJoinedSelf = ({ userId: joinedUserId, name, message }) => {
+        // Only show if the joined user is the current user
+        if (joinedUserId === userId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              message,
+              name: "",
+              userId: "system",
+            },
+          ]);
+        }
       };
       // Listen for user left
-      const handleUserLeft = ({ name }) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            message: `${name} left the chatroom.`,
-            name: "", // No "System:" prefix
-            userId: "system",
-          },
-        ]);
+      const handleUserLeft = ({ userId: leftUserId, name }) => {
+        // Only show if the left user is not the current user
+        if (leftUserId !== userId) {
+          setMessages((prev) => [
+            ...prev,
+            {
+              message: `${name} left the chatroom.`,
+              name: "", // No "System:" prefix
+              userId: "system",
+            },
+          ]);
+        }
       };
 
       // Typing status listeners
@@ -120,6 +141,7 @@ const ChatroomPage = ({ socket }) => {
 
       socket.on("newMessage", handleNewMessage);
       socket.on("userJoined", handleUserJoined);
+      socket.on("userJoinedSelf", handleUserJoinedSelf);
       socket.on("userLeft", handleUserLeft);
       socket.on("typing", handleTyping);
       socket.on("stopTyping", handleStopTyping);
@@ -127,6 +149,7 @@ const ChatroomPage = ({ socket }) => {
       return () => {
         socket.off("newMessage", handleNewMessage);
         socket.off("userJoined", handleUserJoined);
+        socket.off("userJoinedSelf", handleUserJoinedSelf);
         socket.off("userLeft", handleUserLeft);
         socket.off("typing", handleTyping);
         socket.off("stopTyping", handleStopTyping);
@@ -154,12 +177,52 @@ const ChatroomPage = ({ socket }) => {
     //eslint-disable-next-line
   }, [chatroomId, socket]);
 
+  // Leave chatroom handler
+  const handleLeaveChatroom = () => {
+    if (socket) {
+      socket.emit("leaveRoom", {
+        chatroomId,
+      });
+    }
+    setMessages([]); // Clear messages
+    navigate("/dashboard");
+  };
+
   return (
     <div className="chatroomPage">
       <div className="chatroomSection">
-        <div className="cardHeader">Chatroom {chatroomName}</div>
+        <div className="cardHeader" style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>{chatroomName}</span>
+          <button
+            style={{
+              marginLeft: "1rem",
+              background: "#e74c3c",
+              color: "#fff",
+              border: "none",
+              borderRadius: "2px",
+              padding: "0.25rem 0.75rem",
+              cursor: "pointer",
+              fontSize: "0.9rem"
+            }}
+            onClick={handleLeaveChatroom}
+          >
+            Leave
+          </button>
+        </div>
         <div className="chatroomContent">
-          {messages.map((message, i) => (
+          {/* Filter out consecutive duplicate system messages */}
+          {messages.reduce((acc, message, i, arr) => {
+            if (
+              message.userId === "system" &&
+              i > 0 &&
+              arr[i - 1].userId === "system" &&
+              arr[i - 1].message === message.message
+            ) {
+              return acc; // skip duplicate
+            }
+            acc.push(message);
+            return acc;
+          }, []).map((message, i) => (
             <div key={i} className="message">
               {message.userId === "system" ? (
                 // Show the user's name if present in system messages

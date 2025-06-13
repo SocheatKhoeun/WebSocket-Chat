@@ -22,6 +22,7 @@ const RegisterPage = (props) => {
       })
       .then((response) => {
         makeToast("success", response.data.message);
+        localStorage.removeItem("CC_Token"); // Clear any previous token
         navigate("/login");
       })
       .catch((err) => {
@@ -38,7 +39,31 @@ const RegisterPage = (props) => {
 
   return (
     <div className="card">
-      <div className="cardHeader">Registration</div>
+      <div
+        className="cardHeader"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <span>Registration</span>
+        <button
+          onClick={() => navigate("/login")}
+          style={{
+            marginLeft: "1rem",
+            background: "#f7c52a",
+            color: "#333",
+            border: "none",
+            borderRadius: "2px",
+            padding: "0.25rem 0.75rem",
+            cursor: "pointer",
+            fontSize: "0.9rem",
+          }}
+        >
+          Login
+        </button>
+      </div>
       <div className="cardBody">
         <div className="inputGroup">
           <label htmlFor="name">Name</label>
