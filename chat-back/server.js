@@ -39,6 +39,25 @@ const jwt = require("jsonwebtoken");
 const Message = mongoose.model("Message");
 const User = mongoose.model("User");
 
+// Add endpoint to get messages for a chatroom
+const express = require("express");
+const appExpress = app; // app is already express()
+appExpress.get("/chatroom/:id/messages", async (req, res) => {
+  // Return all messages for the chatroom, including _id
+  const messages = await Message.find({ chatroom: req.params.id })
+    .sort({ _id: 1 })
+    .populate("user", "name")
+    .lean();
+  // Map to include _id, message, userId, name
+  const result = messages.map(msg => ({
+    _id: msg._id,
+    message: msg.message,
+    userId: msg.user ? msg.user._id.toString() : "",
+    name: msg.user ? msg.user.name : "",
+  }));
+  res.json(result);
+});
+
 io.use(async (socket, next) => {
   try {
     const token = socket.handshake.query.token;
@@ -55,13 +74,25 @@ io.on("connection", (socket) => {
     console.log("Disconnected: " + socket.userId);
   });
 
-  socket.on("joinRoom", ({ chatroomId }) => {
+  socket.on("joinRoom", async ({ chatroomId }) => {
     socket.join(chatroomId);
+    const user = await User.findOne({ _id: socket.userId });
+    io.to(chatroomId).emit("userJoined", {
+      userId: socket.userId,
+      name: user.name, // Send the user's name
+      message: `${user.name} joined the chatroom.`
+    });
     console.log("A user joined chatroom: " + chatroomId);
   });
 
-  socket.on("leaveRoom", ({ chatroomId }) => {
+  socket.on("leaveRoom", async ({ chatroomId }) => {
     socket.leave(chatroomId);
+    const user = await User.findOne({ _id: socket.userId });
+    io.to(chatroomId).emit("userLeft", {
+      userId: socket.userId,
+      name: user.name, // Send the user's name
+      message: `${user.name} left the chatroom.`
+    });
     console.log("A user left chatroom: " + chatroomId);
   });
 
