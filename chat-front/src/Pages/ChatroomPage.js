@@ -8,6 +8,7 @@ const ChatroomPage = ({ socket }) => {
   const messageRef = React.useRef();
   const [userId, setUserId] = React.useState("");
   const [chatroomName, setChatroomName] = React.useState(""); // Add state for chatroom name
+  const [typingUsers, setTypingUsers] = React.useState([]); // Track users typing
 
   const sendMessage = () => {
     if (socket) {
@@ -19,6 +20,19 @@ const ChatroomPage = ({ socket }) => {
       messageRef.current.value = "";
     }
   };
+
+  // Typing event handlers
+  const handleInputChange = () => {
+    if (socket) {
+      socket.emit("typing", { chatroomId });
+      if (typingTimeout.current) clearTimeout(typingTimeout.current);
+      typingTimeout.current = setTimeout(() => {
+        socket.emit("stopTyping", { chatroomId });
+      }, 1000);
+    }
+  };
+
+  const typingTimeout = React.useRef();
 
   // Fetch chatroom name
   React.useEffect(() => {
@@ -89,18 +103,37 @@ const ChatroomPage = ({ socket }) => {
         ]);
       };
 
+      // Typing status listeners
+      const handleTyping = ({ userId: typingUserId, name }) => {
+        if (typingUserId !== userId) {
+          setTypingUsers((prev) => {
+            if (!prev.some((u) => u.userId === typingUserId)) {
+              return [...prev, { userId: typingUserId, name }];
+            }
+            return prev;
+          });
+        }
+      };
+      const handleStopTyping = ({ userId: typingUserId }) => {
+        setTypingUsers((prev) => prev.filter((u) => u.userId !== typingUserId));
+      };
+
       socket.on("newMessage", handleNewMessage);
       socket.on("userJoined", handleUserJoined);
       socket.on("userLeft", handleUserLeft);
+      socket.on("typing", handleTyping);
+      socket.on("stopTyping", handleStopTyping);
 
       return () => {
         socket.off("newMessage", handleNewMessage);
         socket.off("userJoined", handleUserJoined);
         socket.off("userLeft", handleUserLeft);
+        socket.off("typing", handleTyping);
+        socket.off("stopTyping", handleStopTyping);
       };
     }
     //eslint-disable-next-line
-  }, [socket]);
+  }, [socket, userId]);
 
   React.useEffect(() => {
     if (socket) {
@@ -150,6 +183,12 @@ const ChatroomPage = ({ socket }) => {
               )}
             </div>
           ))}
+          {/* Typing status */}
+          {typingUsers.length > 0 && (
+            <div style={{ fontStyle: "italic", color: "#888", marginBottom: "0.5rem" }}>
+              {typingUsers.map((u) => u.name).join(", ")} {typingUsers.length === 1 ? "is" : "are"} typing...
+            </div>
+          )}
         </div>
         <div className="chatroomActions">
           <div>
@@ -158,6 +197,7 @@ const ChatroomPage = ({ socket }) => {
               name="message"
               placeholder="Say something!"
               ref={messageRef}
+              onChange={handleInputChange}
             />
           </div>
           <div>

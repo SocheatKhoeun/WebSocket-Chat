@@ -112,4 +112,18 @@ io.on("connection", (socket) => {
       await newMessage.save();
     }
   });
+
+  socket.on("typing", async ({ chatroomId }) => {
+    const user = await User.findOne({ _id: socket.userId });
+    socket.to(chatroomId).emit("typing", {
+      userId: socket.userId,
+      name: user.name,
+    });
+  });
+
+  socket.on("stopTyping", ({ chatroomId }) => {
+    socket.to(chatroomId).emit("stopTyping", {
+      userId: socket.userId,
+    });
+  });
 });
