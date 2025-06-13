@@ -89,7 +89,7 @@ const ChatroomPage = ({ socket }) => {
             ...prev,
             {
               message,
-              name: "",
+              name: name === "Unknown" ? "" : name,
               userId: "system",
             },
           ]);
@@ -103,7 +103,7 @@ const ChatroomPage = ({ socket }) => {
             ...prev,
             {
               message,
-              name: "",
+              name: "", // Always blank for self
               userId: "system",
             },
           ]);
@@ -225,9 +225,8 @@ const ChatroomPage = ({ socket }) => {
           }, []).map((message, i) => (
             <div key={i} className="message">
               {message.userId === "system" ? (
-                // Show the user's name if present in system messages
+                // Only show the system message, do NOT prefix with name
                 <span className="otherMessage">
-                  {message.name ? `${message.name}: ` : ""}
                   {message.message}
                 </span>
               ) : (

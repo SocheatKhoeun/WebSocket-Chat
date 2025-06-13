@@ -9,7 +9,7 @@ const IndexPage = (props) => {
     if (!token) {
       navigate("/login");
     } else {
-      navigate("/dashboard");
+      navigate("/register");
     }
     // eslint-disable-next-line
   }, [0]);
